@@ -109,7 +109,15 @@ def display_books():
     main_menu(clear=False)
 
 
-def add_book(title, author, genre, subgenre, pages, publisher):
+def add_book():
+    clear_output(999)
+    print("Adding a book")
+    title = input("Please type Title of Book: ")
+    author = input("Please type Author's Name: ")
+    genre = input("Please type Genre: ")
+    subgenre = input("Please type Subgenre: ")
+    pages = input("Please type number of pages: ")
+    publisher = input("Please type publisher name: ")
     info = {
         "Title": title,
         "Author": author,
@@ -129,11 +137,13 @@ def add_book(title, author, genre, subgenre, pages, publisher):
             :Publisher)""",
             info,
         )
+    print('\nBook Added!\n')
+    main_menu(clear=False)
 
 
 def withdraw_book():
     while True:
-        title = input("Please Select the title of the book to withdraw")
+        title = input("Please Select the title of the book to withdraw: ")
         with lib_db:
             curs.execute(
                 """
@@ -150,9 +160,11 @@ def withdraw_book():
     with with_db:
         wcurs.execute(
             "SELECT * FROM withdrawals WHERE Title = :title", {'title': title})
+        data = wcurs.fetchall()
 
-        if len(wcurs.fetchall()) != 0:
-            date = list(wcurs.fetchone())[-1]
+        if len(data) != 0:
+            date = data[-1][-1]
+            # print()
             print(
                 f"It appears that this book is currently checked out and is due back at {date}",
                 "\nWould you like to select another book or return to main menu?\n",
@@ -181,6 +193,7 @@ def withdraw_book():
                 )
             except:
                 pass
+            return_date = input("Please enter the date of return in mm/dd/yy format: ")
             wcurs.execute(
                 """INSERT INTO withdrawals VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (*book_info, return_date),
@@ -188,9 +201,30 @@ def withdraw_book():
             with_db.commit()
             wcurs.execute("""SELECT * FROM withdrawals""")
             s = wcurs.fetchall()
-            print(s)
+
+            print(
+                "The following book has been withdrawn:\n",
+                s,
+                '\n'
+                )
             # with_db.commit()
-            return wcurs, with_db
+            main_menu(clear=False)
+            return
+
+
+def is_withdrawn(title):
+    with with_db:
+        wcurs.execute("SELECT * FROM withdrawals WHERE Title = ?", (title,))
+        if (len(wcurs.fetchall())) != 0:
+            date = list(wcurs.fetchone())[-1]
+            print(
+                f"{title} is currently checked out and is due back on {date}"
+            )
+        else:
+            print(
+                f"{title} is available for withdrawal"
+            )
+        main_menu(clear=False)
 
 
 def reset_withdrawn_db():
@@ -198,8 +232,10 @@ def reset_withdrawn_db():
         wcurs.execute("DELETE FROM withdrawals")
         wcurs.execute("SELECT * FROM withdrawals")
         proof = wcurs.fetchall()
-    print(proof)
-    main_menu()
+    print(
+        "\nAll withdrawals have been reset.\n"
+    )
+    main_menu(clear=False)
 
 
 def search_for_book():
@@ -222,7 +258,7 @@ def search_for_book():
     }
     cat = search_cats[response]
     term = input(f'Please input the {cat} name to search: ')
-    curs.execute("SELECT * FROM inHouse WHERE Title = ?", (term, ))
+    curs.execute(f"SELECT * FROM inHouse WHERE {cat} = ?", (term,))
     responses = curs.fetchall()
     if len(responses) == 0:
         print(
@@ -236,20 +272,32 @@ def search_for_book():
         columns = ["Title", "Author", "Genre",
                    "SubGenre", "Pages", "Publisher"]
         df = pd.DataFrame(responses, columns=columns)
-        df = df.drop(columns=["Pages"], axis=1)
-        # df.Pages.apply(lambda x: str(x))
+        # df = df.drop(columns=["Pages"], axis=1)
         tab_df(df)
+        if len(df) != 1:
+            print(
+                "\nLooks like several entries came back. Please enter the number of the book you were searching for:\n",
+            )
+            ans = input("You can also enter -1 to go back to Main Menu: ")
+            if ans == -1 or ans not in df.index:
+                main_menu()
+                return
+            df = df[df.index == ans]
+            tab_df(df)
         print(
             "\n1) Check to see if book is available\n",
             "2) Search another book\n",
             "3) Return to Main Menu\n",
         )
-        response = input("Please select an option by it's corresponding number")
+        title = df.Title.tolist()[0]
+        response = input(
+            "Please select an option by it's corresponding number")
         actions = {
             "1": lambda: is_withdrawn(title),
             "2": search_for_book,
             "3": main_menu,
         }
+        actions[response]()
 
 
 def main_menu(clear=True):
