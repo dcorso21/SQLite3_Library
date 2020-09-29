@@ -48,7 +48,6 @@ def initialize_withdrawals():
     with_db = sqlite3.connect(withdrawn_name)
     wcurs = with_db.cursor()
     s = wcurs.fetchall()
-    print(s)
     if len(s) != 0:
         wcurs.execute("""DELETE * FROM withdrawals""")
     with_db.commit()
@@ -82,6 +81,7 @@ def add_book(title, author, genre, subgenre, pages, publisher):
 
 
 def withdraw_book(title, return_date):
+    # global with_db, wcurs
     with lib_db:
         curs.execute(
             """
@@ -92,7 +92,6 @@ def withdraw_book(title, return_date):
         book_info = curs.fetchone()
     with with_db:
         # if len(wcurs.fetchone()) != 1:
-        print(wcurs.arraysize)
         try:
             wcurs.execute(
             """
@@ -107,25 +106,19 @@ def withdraw_book(title, return_date):
                 )
             """
             )
-        except BaseException as e:
-            # print(e)
-            pass
         wcurs.execute(
-            """INSERT INTO withdrawals VALUES (
-                        :Title,
-                        :Author,
-                        :Genre,
-                        :SubGenre,
-                        :Pages,
-                        :Publisher,
-                        :ReturnDate
-                        )""",
-            (*book_info, return_date))
+            """INSERT INTO withdrawals VALUES (?, ?, ?, ?, ?, ?, ?)""",(*book_info, return_date))
+        s = wcurs.fetchall()
+        print(s)
         with_db.commit()
-    print(book_info)
+        return wcurs, with_db
 
 
-withdraw_book('Fundamentals of Wavelets', '12/12/12')
+wcurs, with_db = withdraw_book('Fundamentals of Wavelets', '12/12/12')
+
+# print(curs.fetchall())
+print('\n', wcurs.fetchall())
+
 
 
 
