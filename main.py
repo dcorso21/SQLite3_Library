@@ -2,7 +2,6 @@
 import sqlite3
 from sqlite3.dbapi2 import ProgrammingError
 import pandas as pd
-# import os
 
 
 lib_name = "inHouse.db"
@@ -18,6 +17,35 @@ def tab_df(df):
         return
     tablefmt = 'fancy_grid'
     print(tabulate(df, headers=df.columns, tablefmt=tablefmt))
+
+
+def clear_output(num_of_lines):
+    # region Docstring
+    '''
+    # Clear Output
+    Clears Print Output of the number of lines passed
+
+    #### Returns nothing.   
+
+    ## Parameters:{
+    ####    `num_of_lines`: number of lines to clear
+    ## }
+    '''
+    # endregion Docstring
+    # if configure.cut_prints == False:
+    #     return
+    # elif isnotebook:
+    #     return
+    import sys
+    cursor_up = '\x1b[1A'
+    erase_line = '\x1b[2K'
+    for _ in range(num_of_lines):
+        sys.stdout.write(erase_line)
+        sys.stdout.write(cursor_up)
+        sys.stdout.write(erase_line)
+
+    sys.stdout.write(cursor_up)
+    sys.stdout.write('\r')
 
 
 def initialize_lib_db():
@@ -38,11 +66,10 @@ def initialize_lib_db():
         lib_db.commit()
     except:
         pass
-    s = curs.fetchall()
-    if len(s) != 0:
-        curs.execute("DELETE * FROM inHouse")
+    curs.execute("DELETE FROM inHouse")
     df = pd.read_csv("books.csv").head(15)
     df = df.rename(columns={"Height": "Pages"})
+    df['Pages'] = df.Pages.apply(str)
     for i in df.index:
         curs.execute(
             """INSERT INTO inHouse VALUES (
@@ -79,7 +106,7 @@ def display_books():
     )
     books['Pages'] = books.Pages.apply(lambda x: str(x).encode('utf-8'))
     tab_df(books)
-    main_menu()
+    main_menu(clear=False)
 
 
 def add_book(title, author, genre, subgenre, pages, publisher):
@@ -121,7 +148,8 @@ def withdraw_book():
                 break
 
     with with_db:
-        wcurs.execute("SELECT * FROM withdrawals WHERE Title = :title" , {'title': title})
+        wcurs.execute(
+            "SELECT * FROM withdrawals WHERE Title = :title", {'title': title})
 
         if len(wcurs.fetchall()) != 0:
             date = list(wcurs.fetchone())[-1]
@@ -175,6 +203,7 @@ def reset_withdrawn_db():
 
 
 def search_for_book():
+    clear_output(999)
     print(
         "\nWhat would you like to search by? :\n",
         "1) Title\n",
@@ -204,14 +233,28 @@ def search_for_book():
             search_for_book()
         return main_menu()
     else:
-        columns=["Title", "Author", "Genre", "SubGenre", "Pages", "Publisher"]
-        df = pd.DataFrame(responses, columns= columns)
+        columns = ["Title", "Author", "Genre",
+                   "SubGenre", "Pages", "Publisher"]
+        df = pd.DataFrame(responses, columns=columns)
         df = df.drop(columns=["Pages"], axis=1)
         # df.Pages.apply(lambda x: str(x))
         tab_df(df)
+        print(
+            "\n1) Check to see if book is available\n",
+            "2) Search another book\n",
+            "3) Return to Main Menu\n",
+        )
+        response = input("Please select an option by it's corresponding number")
+        actions = {
+            "1": lambda: is_withdrawn(title),
+            "2": search_for_book,
+            "3": main_menu,
+        }
 
 
-def main_menu():
+def main_menu(clear=True):
+    if clear:
+        clear_output(999)
     print(
         "1) Browse Books\n",
         "2) Search Books\n",
@@ -240,7 +283,7 @@ def lib_program():
     print(
         "Welcome to the Library Management System!\nPlease choose from the following:\n",
     )
-    main_menu()
+    main_menu(clear=False)
 
 
 if __name__ == "__main__":
