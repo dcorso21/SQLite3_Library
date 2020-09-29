@@ -106,11 +106,14 @@ def withdraw_book(title, return_date):
                 )
             """
             )
+        except:
+            pass
         wcurs.execute(
             """INSERT INTO withdrawals VALUES (?, ?, ?, ?, ?, ?, ?)""",(*book_info, return_date))
+        with_db.commit()
         s = wcurs.fetchall()
         print(s)
-        with_db.commit()
+        # with_db.commit()
         return wcurs, with_db
 
 
