@@ -193,7 +193,7 @@ def search_for_book():
     }
     cat = search_cats[response]
     term = input(f'Please input the {cat} name to search: ')
-    curs.execute("SELECT * FROM inHouse WHERE ? = ?", (cat, term))
+    curs.execute("SELECT * FROM inHouse WHERE Title = ?", (term, ))
     responses = curs.fetchall()
     if len(responses) == 0:
         print(
@@ -204,8 +204,10 @@ def search_for_book():
             search_for_book()
         return main_menu()
     else:
-        columns=["Title", "Author", "Genre", "SubGenre", "Pages", "Publisher"],
+        columns=["Title", "Author", "Genre", "SubGenre", "Pages", "Publisher"]
         df = pd.DataFrame(responses, columns= columns)
+        df = df.drop(columns=["Pages"], axis=1)
+        # df.Pages.apply(lambda x: str(x))
         tab_df(df)
 
 
@@ -219,9 +221,6 @@ def main_menu():
         "6) Exit\n",
     )
     pick = input("Enter the number of the action you would like to take: ")
-    if int(pick) not in [1, 2, 3, 4, 5, 6]:
-        print("Selection Not Valid, please pick again!")
-        main_menu()
     actions = {
         "1": display_books,
         "2": search_for_book,
@@ -230,6 +229,9 @@ def main_menu():
         "5": reset_withdrawn_db,
         "6": lambda: print("\nGoodbye!"),
     }
+    if pick not in actions.keys():
+        print("Selection Not Valid, please pick again!")
+        main_menu()
     pick = str(pick).strip()
     actions[pick]()
 
