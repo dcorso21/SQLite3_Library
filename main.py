@@ -7,7 +7,7 @@ lib_name = "inHouse.db"
 withdrawn_name = "withdrawals.db"
 
 
-def initalize_database():
+def initialize_lib_db():
     lib_db = sqlite3.connect(lib_name)
     curs = lib_db.cursor()
     if not os.path.exists(lib_name):
@@ -40,35 +40,22 @@ def initalize_database():
             df.iloc[i].to_dict(),
         )
     lib_db.commit()
-    lib_db.close()
+    # lib_db.close()
     return lib_db, curs
 
 
 def initialize_withdrawals():
     with_db = sqlite3.connect(withdrawn_name)
     wcurs = with_db.cursor()
-    if not os.path.exists(withdrawn_name):
-        wcurs.execute(
-            """
-        CREATE TABLE withdrawals (
-            Title text,
-            Author text,
-            Genre text,
-            SubGenre text,
-            Pages integer,
-            Publisher text,
-            ReturnDate text
-            )
-        """
-        )
     s = wcurs.fetchall()
+    print(s)
     if len(s) != 0:
         wcurs.execute("""DELETE * FROM withdrawals""")
     with_db.commit()
     return with_db, wcurs
 
 
-lib_db, curs = initalize_database()
+lib_db, curs = initialize_lib_db()
 with_db, wcurs = initialize_withdrawals()
 
 
@@ -95,25 +82,50 @@ def add_book(title, author, genre, subgenre, pages, publisher):
 
 
 def withdraw_book(title, return_date):
-    curs.execute(
-        """
-        SELECT * FROM inHouse WHERE Title = :title
-        """,
-        {"title": title},
-    )
-    book_info = curs.fetchone()
-    wcurs.execute(
-        """INSERT INTO withdrawals VALUES (
-                    :Title,
-                    :Author,
-                    :Genre,
-                    :SubGenre,
-                    :Pages,
-                    :Publisher,
-                    :ReturnDate,
-                    )""",
-        (*book_info, return_date),
-    )
-    with_db.commit()
-    with_db.close()
+    with lib_db:
+        curs.execute(
+            """
+            SELECT * FROM inHouse WHERE Title = :title
+            """,
+            {"title": title},
+        )
+        book_info = curs.fetchone()
+    with with_db:
+        # if len(wcurs.fetchone()) != 1:
+        print(wcurs.arraysize)
+        try:
+            wcurs.execute(
+            """
+            CREATE TABLE withdrawals (
+                Title text,
+                Author text,
+                Genre text,
+                SubGenre text,
+                Pages integer,
+                Publisher text,
+                ReturnDate text
+                )
+            """
+            )
+        except BaseException as e:
+            # print(e)
+            pass
+        wcurs.execute(
+            """INSERT INTO withdrawals VALUES (
+                        :Title,
+                        :Author,
+                        :Genre,
+                        :SubGenre,
+                        :Pages,
+                        :Publisher,
+                        :ReturnDate
+                        )""",
+            (*book_info, return_date))
+        with_db.commit()
     print(book_info)
+
+
+withdraw_book('Fundamentals of Wavelets', '12/12/12')
+
+
+
