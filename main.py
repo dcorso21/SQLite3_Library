@@ -1,6 +1,5 @@
 # Data from https://gist.github.com/jaidevd/23aef12e9bf56c618c41
 import sqlite3
-from sqlite3.dbapi2 import ProgrammingError
 import pandas as pd
 
 
@@ -9,6 +8,7 @@ withdrawn_name = "withdrawals.db"
 
 
 def tab_df(df):
+    """Prints out a df or dict in a pretty way"""
     from tabulate import tabulate
     import json
     if type(df) == dict:
@@ -23,7 +23,7 @@ def clear_output(num_of_lines):
     # region Docstring
     '''
     # Clear Output
-    Clears Print Output of the number of lines passed
+    Clears Console Output of the number of lines passed
 
     #### Returns nothing.   
 
@@ -49,6 +49,7 @@ def clear_output(num_of_lines):
 
 
 def initialize_lib_db():
+    """Makes sure lib_db exists and is populated with data"""
     lib_db = sqlite3.connect(lib_name)
     curs = lib_db.cursor()
     try:
@@ -86,6 +87,7 @@ def initialize_lib_db():
 
 
 def initialize_withdrawals():
+    """Ensures with_db exists"""
     with_db = sqlite3.connect(withdrawn_name)
     wcurs = with_db.cursor()
     wcurs.execute("""SELECT * FROM withdrawals""")
@@ -97,6 +99,7 @@ def initialize_withdrawals():
 
 
 def display_books():
+    """Gathers all entries for db and prints them out to console"""
     with lib_db:
         curs.execute("""SELECT * FROM inHouse""")
         books = curs.fetchall()
@@ -110,6 +113,7 @@ def display_books():
 
 
 def add_book():
+    """Adds a book entry to the lib_db through the main menu ui of the program"""
     clear_output(999)
     print("Adding a book")
     title = input("Please type Title of Book: ")
@@ -142,6 +146,7 @@ def add_book():
 
 
 def withdraw_book():
+    """Allows user to withdraw a book and set a date for return """
     while True:
         title = input("Please Select the title of the book to withdraw: ")
         with lib_db:
@@ -213,21 +218,24 @@ def withdraw_book():
 
 
 def is_withdrawn(title):
+    "Endpoint for App that will declare whether passed title is inside the with_db"
     with with_db:
         wcurs.execute("SELECT * FROM withdrawals WHERE Title = ?", (title,))
-        if (len(wcurs.fetchall())) != 0:
-            date = list(wcurs.fetchone())[-1]
+        data = wcurs.fetchall()
+        if (len(data)) != 0:
+            date = data[0][-1]
             print(
-                f"{title} is currently checked out and is due back on {date}"
+                f"{title} is currently checked out and is due back on {date}\n"
             )
         else:
             print(
-                f"{title} is available for withdrawal"
+                f"{title} is available for withdrawal\n"
             )
         main_menu(clear=False)
 
 
 def reset_withdrawn_db():
+    """DELETE all entries of with_db"""
     with with_db:
         wcurs.execute("DELETE FROM withdrawals")
         wcurs.execute("SELECT * FROM withdrawals")
@@ -239,6 +247,7 @@ def reset_withdrawn_db():
 
 
 def search_for_book():
+    '''Allows user to search through book collection'''
     clear_output(999)
     print(
         "\nWhat would you like to search by? :\n",
@@ -248,7 +257,7 @@ def search_for_book():
         "4) SubGenre\n",
         "5) Publisher\n",
     )
-    response = input("Please select an option by it's corresponding number")
+    response = input("Please select an option by it's corresponding number: ")
     search_cats = {
         "1": "Title",
         "2": "Author",
@@ -279,10 +288,10 @@ def search_for_book():
                 "\nLooks like several entries came back. Please enter the number of the book you were searching for:\n",
             )
             ans = input("You can also enter -1 to go back to Main Menu: ")
-            if ans == -1 or ans not in df.index:
+            if int(ans) == -1 or int(ans) not in df.index:
                 main_menu()
                 return
-            df = df[df.index == ans]
+            df = df[df.index == int(ans)]
             tab_df(df)
         print(
             "\n1) Check to see if book is available\n",
@@ -291,7 +300,7 @@ def search_for_book():
         )
         title = df.Title.tolist()[0]
         response = input(
-            "Please select an option by it's corresponding number")
+            "Please select an option by it's corresponding number: ")
         actions = {
             "1": lambda: is_withdrawn(title),
             "2": search_for_book,
@@ -301,6 +310,7 @@ def search_for_book():
 
 
 def main_menu(clear=True):
+    """User hub of options to choose from with directories to said options"""
     if clear:
         clear_output(999)
     print(
@@ -328,6 +338,7 @@ def main_menu(clear=True):
 
 
 def lib_program():
+    """Main Program"""
     print(
         "Welcome to the Library Management System!\nPlease choose from the following:\n",
     )
